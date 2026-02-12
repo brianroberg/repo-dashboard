@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+    <header class="dashboard-header">
+        <h1>Repo Dashboard</h1>
+        <p class="generated-at">Generated at {{ data.generated_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+    </header>
+
+    {% if data.errors %}
+    <div class="errors">
+        <h2>Errors</h2>
+        <ul>
+            {% for error in data.errors %}
+            <li class="error-item">{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="repo-grid">
+        {% for view in data.repos %}
+            {% include "partials/repo_card.html" %}
+        {% endfor %}
+    </div>
+
+    {% if not data.repos %}
+    <div class="empty-state">
+        <p>No repositories found. Check your configuration.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+# Repo Dashboard Configuration
+# Copy to config.yaml and customize for your orgs.
+
+github_orgs:
+  - name: "my-org"
+    include_all: true           # Fetch all repos in org
+    repos:                      # Per-repo overrides (optional)
+      - name: "web-app"
+        category: "Frontend"
+        tags: ["production"]
+        fly_app: "web-app-prod" # Explicit Fly.io mapping
+
+  - name: "other-org"
+    include_all: false          # Only fetch explicitly listed repos
+    repos:
+      - name: "shared-lib"
+        category: "Libraries"
+
+fly_orgs:
+  - slug: "my-fly-org"

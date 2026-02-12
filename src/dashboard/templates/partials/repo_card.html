@@ -1,0 +1,109 @@
+<div class="repo-card" data-repo="{{ view.repo.full_name }}">
+    <div class="repo-card-header" onclick="toggleCard(this)">
+        <div class="repo-info">
+            <h3 class="repo-name">
+                <a href="{{ view.repo.html_url }}" target="_blank">{{ view.repo.full_name }}</a>
+            </h3>
+            {% if view.repo.description %}
+            <p class="repo-description">{{ view.repo.description }}</p>
+            {% endif %}
+        </div>
+        <div class="repo-meta">
+            {% if view.repo.language %}
+            <span class="badge lang">{{ view.repo.language }}</span>
+            {% endif %}
+            <span class="badge category">{{ view.repo.category }}</span>
+            {% for tag in view.repo.tags %}
+            <span class="badge tag">{{ tag }}</span>
+            {% endfor %}
+            <span class="branch-count">{{ view.repo.branches|length }} branches</span>
+            {% if view.repo.codespace_count > 0 %}
+            <span class="codespace-count">{{ view.repo.codespace_count }} codespaces</span>
+            {% endif %}
+            <span class="expand-icon">▶</span>
+        </div>
+    </div>
+
+    <div class="repo-card-details" style="display: none;">
+        {% if view.repo.branches %}
+        <div class="section branches-section">
+            <h4>Branches</h4>
+            <table class="branches-table">
+                <thead>
+                    <tr>
+                        <th>Branch</th>
+                        <th>Ahead</th>
+                        <th>Behind</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for branch in view.repo.branches %}
+                    <tr class="{% if branch.is_default %}default-branch{% endif %}">
+                        <td>
+                            {{ branch.name }}
+                            {% if branch.is_default %}<span class="badge default">default</span>{% endif %}
+                        </td>
+                        <td>{% if not branch.is_default %}{{ branch.ahead }}{% else %}&mdash;{% endif %}</td>
+                        <td>{% if not branch.is_default %}{{ branch.behind }}{% else %}&mdash;{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if view.repo.codespaces %}
+        <div class="section codespaces-section">
+            <h4>Codespaces</h4>
+            <table class="codespaces-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>State</th>
+                        <th>Owner</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cs in view.repo.codespaces %}
+                    <tr>
+                        <td>{{ cs.name }}</td>
+                        <td><span class="badge state-{{ cs.state|lower }}">{{ cs.state }}</span></td>
+                        <td>{{ cs.owner }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if view.fly_app %}
+        <div class="section fly-section">
+            <h4>Fly.io: {{ view.fly_app.name }}</h4>
+            <p class="fly-status">Status: <span class="badge">{{ view.fly_app.status }}</span></p>
+            {% if view.fly_app.hostname %}
+            <p class="fly-hostname">Hostname: <a href="https://{{ view.fly_app.hostname }}" target="_blank">{{ view.fly_app.hostname }}</a></p>
+            {% endif %}
+            {% if view.fly_app.machines %}
+            <table class="machines-table">
+                <thead>
+                    <tr>
+                        <th>Machine</th>
+                        <th>State</th>
+                        <th>Region</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in view.fly_app.machines %}
+                    <tr>
+                        <td>{{ m.name or m.id }}</td>
+                        <td><span class="badge state-{{ m.state|lower }}">{{ m.state }}</span></td>
+                        <td>{{ m.region }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
