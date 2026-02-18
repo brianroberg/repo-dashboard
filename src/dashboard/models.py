@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 # ── Config models ──────────────────────────────────────────────────────────────
 
@@ -84,6 +84,29 @@ class FlyAppInfo(BaseModel):
     machines: list[FlyMachine] = Field(default_factory=list)
 
 
+# ── Attention signals ─────────────────────────────────────────────────────────
+
+_FLY_PROBLEM_STATES: frozenset[str] = frozenset({"suspended", "failed", "stopped", "dead"})
+
+
+class AttentionSignals(BaseModel):
+    """Pre-computed attention indicators for a repo's collapsed card header."""
+
+    branches_ahead_count: int = 0
+    branches_behind_count: int = 0
+    active_codespace_count: int = 0
+    fly_has_issues: bool = False
+
+    @property
+    def all_clear(self) -> bool:
+        return (
+            self.branches_ahead_count == 0
+            and self.branches_behind_count == 0
+            and self.active_codespace_count == 0
+            and not self.fly_has_issues
+        )
+
+
 # ── View / aggregated models ──────────────────────────────────────────────────
 
 
@@ -92,6 +115,23 @@ class RepoView(BaseModel):
 
     repo: RepoData
     fly_app: FlyAppInfo | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def attention(self) -> AttentionSignals:
+        non_default = [b for b in self.repo.branches if not b.is_default]
+        fly_has_issues = False
+        if self.fly_app is not None:
+            if self.fly_app.status.lower() in _FLY_PROBLEM_STATES:
+                fly_has_issues = True
+            elif any(m.state.lower() in _FLY_PROBLEM_STATES for m in self.fly_app.machines):
+                fly_has_issues = True
+        return AttentionSignals(
+            branches_ahead_count=sum(1 for b in non_default if b.ahead > 0),
+            branches_behind_count=sum(1 for b in non_default if b.behind > 0),
+            active_codespace_count=self.repo.codespace_count,
+            fly_has_issues=fly_has_issues,
+        )
 
 
 class DashboardData(BaseModel):

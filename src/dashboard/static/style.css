@@ -159,8 +159,7 @@ a:hover {
     font-size: 12px;
 }
 
-.branch-count,
-.codespace-count {
+.branch-count {
     color: var(--text-muted);
     font-size: 12px;
 }
@@ -226,6 +225,29 @@ a:hover {
 .badge.state-failed {
     background: rgba(248, 81, 73, 0.15);
     color: var(--red);
+}
+
+/* ── Attention signal badges ─────────────────────────────────────── */
+
+.badge.signal-ahead {
+    background: rgba(210, 153, 34, 0.15);
+    color: var(--orange);
+}
+
+.badge.signal-behind,
+.badge.signal-fly {
+    background: rgba(248, 81, 73, 0.15);
+    color: var(--red);
+}
+
+.badge.signal-cs {
+    background: rgba(63, 185, 80, 0.15);
+    color: var(--green);
+}
+
+.badge.signal-ok {
+    background: rgba(63, 185, 80, 0.08);
+    color: rgba(63, 185, 80, 0.7);
 }
 
 /* ── Card Details ────────────────────────────────────────────────── */

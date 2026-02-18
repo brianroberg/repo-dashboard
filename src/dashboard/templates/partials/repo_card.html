@@ -17,9 +17,25 @@
             <span class="badge tag">{{ tag }}</span>
             {% endfor %}
             <span class="branch-count">{{ view.repo.branches|length }} branches</span>
-            {% if view.repo.codespace_count > 0 %}
-            <span class="codespace-count">{{ view.repo.codespace_count }} codespaces</span>
+
+            {# ── Attention signal badges ── #}
+            {% set signals = view.attention %}
+            {% if signals.branches_ahead_count > 0 %}
+            <span class="badge signal-ahead">{{ signals.branches_ahead_count }} ahead</span>
             {% endif %}
+            {% if signals.branches_behind_count > 0 %}
+            <span class="badge signal-behind">{{ signals.branches_behind_count }} behind</span>
+            {% endif %}
+            {% if signals.active_codespace_count > 0 %}
+            <span class="badge signal-cs">{{ signals.active_codespace_count }} codespaces</span>
+            {% endif %}
+            {% if signals.fly_has_issues %}
+            <span class="badge signal-fly">fly issues</span>
+            {% endif %}
+            {% if signals.all_clear %}
+            <span class="badge signal-ok">ok</span>
+            {% endif %}
+
             <span class="expand-icon">▶</span>
         </div>
     </div>
