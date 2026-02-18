@@ -327,6 +327,111 @@ tr.default-branch {
     font-size: 15px;
 }
 
+/* ── Filter Toolbar ──────────────────────────────────────────────── */
+
+.filter-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.filter-toolbar-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 4px;
+}
+
+/* ── Filter Switch ───────────────────────────────────────────────── */
+
+.filter-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.filter-switch-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.filter-switch-track {
+    display: inline-block;
+    position: relative;
+    width: 32px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    transition: background 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+}
+
+.filter-switch-track::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: transform 0.15s, background 0.15s;
+}
+
+.filter-switch-input:checked + .filter-switch-track {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.filter-switch-input:checked + .filter-switch-track::after {
+    transform: translateX(14px);
+    background: var(--text);
+}
+
+.filter-switch-input:focus-visible + .filter-switch-track {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.filter-switch-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    transition: color 0.15s;
+}
+
+.filter-switch:hover .filter-switch-text {
+    color: var(--text);
+}
+
+.filter-switch-input:checked ~ .filter-switch-text {
+    color: var(--accent);
+}
+
+/* ── Filter Rules ────────────────────────────────────────────────── */
+
+.repo-grid.filter-has-divergence .repo-card[data-has-divergence="false"] {
+    display: none;
+}
+
+.repo-grid.filter-all-clear .repo-card[data-all-clear="true"] {
+    display: none;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
@@ -346,5 +451,10 @@ tr.default-branch {
 
     .repo-meta {
         flex-wrap: wrap;
+    }
+
+    .filter-toolbar {
+        flex-wrap: wrap;
+        gap: 12px;
     }
 }

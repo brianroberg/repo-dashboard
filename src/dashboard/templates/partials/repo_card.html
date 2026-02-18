@@ -1,4 +1,7 @@
-<div class="repo-card" data-repo="{{ view.repo.full_name }}">
+<div class="repo-card"
+     data-repo="{{ view.repo.full_name }}"
+     data-has-divergence="{{ 'true' if (view.attention.branches_ahead_count > 0 or view.attention.branches_behind_count > 0) else 'false' }}"
+     data-all-clear="{{ 'true' if view.attention.all_clear else 'false' }}">
     <div class="repo-card-header" onclick="toggleCard(this)">
         <div class="repo-info">
             <h3 class="repo-name">

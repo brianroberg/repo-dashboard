@@ -15,10 +15,12 @@ function toggleCard(headerEl) {
 }
 
 /**
- * Expand or collapse all repo cards.
+ * Expand or collapse all visible repo cards.
+ * Cards hidden by filters are skipped.
  */
 function toggleAll(expand) {
     document.querySelectorAll('.repo-card').forEach(card => {
+        if (getComputedStyle(card).display === 'none') return;
         const details = card.querySelector('.repo-card-details');
         if (expand) {
             card.classList.add('expanded');
@@ -36,3 +38,27 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'e') toggleAll(true);
     if (e.key === 'c') toggleAll(false);
 });
+
+/**
+ * Wire filter toggle switches to CSS class mutations on the repo grid.
+ * Each entry maps a checkbox ID to the CSS class toggled on #repo-grid.
+ * CSS rules use that class + data attributes on cards to show/hide.
+ */
+const FILTERS = [
+    ['filter-divergence', 'filter-has-divergence'],
+    ['filter-all-clear',  'filter-all-clear'],
+];
+
+function initFilters() {
+    const grid = document.getElementById('repo-grid');
+    if (!grid) return;
+
+    for (const [id, cls] of FILTERS) {
+        const cb = document.getElementById(id);
+        if (cb) {
+            cb.addEventListener('change', () => grid.classList.toggle(cls, cb.checked));
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initFilters);

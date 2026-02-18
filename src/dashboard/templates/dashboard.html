@@ -7,6 +7,20 @@
         <p class="generated-at">Generated at {{ data.generated_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
     </header>
 
+    <div class="filter-toolbar">
+        <span class="filter-toolbar-label">Filter</span>
+        <label class="filter-switch">
+            <input type="checkbox" id="filter-divergence" class="filter-switch-input">
+            <span class="filter-switch-track" aria-hidden="true"></span>
+            <span class="filter-switch-text">Has divergence</span>
+        </label>
+        <label class="filter-switch">
+            <input type="checkbox" id="filter-all-clear" class="filter-switch-input">
+            <span class="filter-switch-track" aria-hidden="true"></span>
+            <span class="filter-switch-text">Hide all-clear</span>
+        </label>
+    </div>
+
     {% if data.errors %}
     <div class="errors">
         <h2>Errors</h2>
@@ -18,7 +32,7 @@
     </div>
     {% endif %}
 
-    <div class="repo-grid">
+    <div class="repo-grid" id="repo-grid">
         {% for view in data.repos %}
             {% include "partials/repo_card.html" %}
         {% endfor %}
