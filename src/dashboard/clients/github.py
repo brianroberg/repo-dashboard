@@ -17,6 +17,7 @@ class GitHubClient:
             "Authorization": f"token {token}",
             "Accept": "application/vnd.github+json",
         }
+        self._authenticated_user: str | None = None
 
     async def _get(self, url: str, params: dict[str, Any] | None = None) -> httpx.Response:
         resp = await self._http.get(url, headers=self._headers, params=params)
@@ -44,9 +45,34 @@ class GitHubClient:
         match = re.search(r'<([^>]+)>;\s*rel="next"', link_header)
         return match.group(1) if match else None
 
+    async def _get_authenticated_user(self) -> str:
+        """Return the login of the authenticated user (cached after first call)."""
+        if self._authenticated_user is None:
+            resp = await self._get(f"{BASE_URL}/user")
+            self._authenticated_user = resp.json()["login"]
+        return self._authenticated_user
+
     async def list_org_repos(self, org: str) -> list[dict[str, Any]]:
-        """List all repositories for a GitHub org."""
-        return await self._get_paginated(f"{BASE_URL}/orgs/{org}/repos", {"type": "all"})
+        """List all repositories for a GitHub org or user.
+
+        Tries the /orgs endpoint first; if it 404s the name is a personal
+        account.  For the authenticated user we hit /user/repos (includes
+        private repos); for other users we fall back to /users/{name}/repos.
+        """
+        try:
+            return await self._get_paginated(f"{BASE_URL}/orgs/{org}/repos", {"type": "all"})
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 404:
+                raise
+            # Personal account — pick the right endpoint
+            authed_user = await self._get_authenticated_user()
+            if org.lower() == authed_user.lower():
+                return await self._get_paginated(
+                    f"{BASE_URL}/user/repos", {"type": "owner"}
+                )
+            return await self._get_paginated(
+                f"{BASE_URL}/users/{org}/repos", {"type": "all"}
+            )
 
     async def list_branches(self, owner: str, repo: str) -> list[dict[str, Any]]:
         """List all branches for a repo."""

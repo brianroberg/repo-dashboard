@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from dashboard.clients.github import GitHubClient
+from dashboard.clients.github import BASE_URL, GitHubClient
 
 TOKEN = "ghp_test_token"
 
@@ -61,6 +61,54 @@ class TestListOrgRepos:
         result = await client.list_org_repos("org")
         assert len(result) == 1
         assert result[0]["name"] == "repo1"
+
+    async def test_falls_back_to_users_endpoint_for_other_user(self, make_client):
+        repos = [{"name": "user-repo", "full_name": "otheruser/user-repo"}]
+
+        def handler(request: httpx.Request):
+            url = str(request.url)
+            if "/orgs/" in url:
+                return make_response({"message": "Not Found"}, status_code=404)
+            if "/user" in url and "/users/" not in url:
+                # /user endpoint → return authenticated user info
+                return make_response({"login": "myuser"})
+            assert "/users/otheruser" in url
+            return make_response(repos)
+
+        client = make_client(handler)
+        result = await client.list_org_repos("otheruser")
+        assert len(result) == 1
+        assert result[0]["name"] == "user-repo"
+
+    async def test_falls_back_to_authenticated_user_repos_for_self(self, make_client):
+        repos = [
+            {"name": "public-repo", "private": False},
+            {"name": "private-repo", "private": True},
+        ]
+
+        def handler(request: httpx.Request):
+            url = str(request.url)
+            if "/orgs/" in url:
+                return make_response({"message": "Not Found"}, status_code=404)
+            if url.startswith(f"{BASE_URL}/user/repos"):
+                return make_response(repos)
+            if url == f"{BASE_URL}/user":
+                return make_response({"login": "myuser"})
+            raise AssertionError(f"Unexpected URL: {url}")
+
+        client = make_client(handler)
+        result = await client.list_org_repos("myuser")
+        assert len(result) == 2
+        assert result[1]["name"] == "private-repo"
+
+    async def test_does_not_fallback_on_non_404_error(self, make_client):
+        def handler(request: httpx.Request):
+            return make_response({"message": "Bad credentials"}, status_code=401)
+
+        client = make_client(handler)
+        with pytest.raises(httpx.HTTPStatusError) as exc_info:
+            await client.list_org_repos("some-org")
+        assert exc_info.value.response.status_code == 401
 
     async def test_pagination(self, make_client):
         page1 = [{"name": f"repo{i}"} for i in range(100)]
