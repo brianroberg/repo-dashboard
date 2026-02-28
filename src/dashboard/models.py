@@ -123,12 +123,10 @@ class RepoView(BaseModel):
     @property
     def attention(self) -> AttentionSignals:
         non_default = [b for b in self.repo.branches if not b.is_default]
-        fly_has_issues = False
-        if self.fly_app is not None:
-            if self.fly_app.status.lower() in _FLY_PROBLEM_STATES:
-                fly_has_issues = True
-            elif any(m.state.lower() in _FLY_PROBLEM_STATES for m in self.fly_app.machines):
-                fly_has_issues = True
+        fly_has_issues = self.fly_app is not None and (
+            self.fly_app.status.lower() in _FLY_PROBLEM_STATES
+            or any(m.state.lower() in _FLY_PROBLEM_STATES for m in self.fly_app.machines)
+        )
         return AttentionSignals(
             branches_ahead_count=sum(1 for b in non_default if b.ahead > 0),
             branches_behind_count=sum(1 for b in non_default if b.behind > 0),
