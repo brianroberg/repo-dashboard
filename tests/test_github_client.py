@@ -183,6 +183,62 @@ class TestListCodespaces:
         assert result == []
 
 
+class TestGetCommitCount:
+    async def test_returns_sum_of_contributions(self, make_client):
+        contributors = [
+            {"login": "user1", "contributions": 50},
+            {"login": "user2", "contributions": 30},
+            {"login": "user3", "contributions": 20},
+        ]
+
+        def handler(request: httpx.Request):
+            assert "/contributors" in str(request.url)
+            return make_response(contributors)
+
+        client = make_client(handler)
+        result = await client.get_commit_count("org", "repo")
+        assert result == 100
+
+    async def test_returns_zero_on_double_202(self, make_client):
+        def handler(request: httpx.Request):
+            return make_response([], status_code=202)
+
+        client = make_client(handler)
+        result = await client.get_commit_count("org", "repo")
+        assert result == 0
+
+    async def test_retries_on_first_202_then_succeeds(self, make_client):
+        call_count = 0
+
+        def handler(request: httpx.Request):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return make_response([], status_code=202)
+            return make_response([{"contributions": 42}])
+
+        client = make_client(handler)
+        result = await client.get_commit_count("org", "repo")
+        assert result == 42
+        assert call_count == 2
+
+    async def test_returns_zero_on_error(self, make_client):
+        def handler(request: httpx.Request):
+            return make_response({"message": "Not Found"}, status_code=404)
+
+        client = make_client(handler)
+        result = await client.get_commit_count("org", "repo")
+        assert result == 0
+
+    async def test_empty_contributors(self, make_client):
+        def handler(request: httpx.Request):
+            return make_response([])
+
+        client = make_client(handler)
+        result = await client.get_commit_count("org", "repo")
+        assert result == 0
+
+
 class TestParseNextLink:
     def test_with_next(self):
         header = (

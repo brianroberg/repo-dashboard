@@ -1,7 +1,10 @@
 <div class="repo-card"
      data-repo="{{ view.repo.full_name }}"
      data-has-divergence="{{ 'true' if (view.attention.branches_ahead_count > 0 or view.attention.branches_behind_count > 0) else 'false' }}"
-     data-all-clear="{{ 'true' if view.attention.all_clear else 'false' }}">
+     data-all-clear="{{ 'true' if view.attention.all_clear else 'false' }}"
+     data-sort-name="{{ view.repo.full_name | lower }}"
+     data-sort-pushed-at="{{ view.repo.pushed_at.isoformat() if view.repo.pushed_at else '' }}"
+     data-sort-commit-count="{{ view.repo.commit_count }}">
     <div class="repo-card-header" onclick="toggleCard(this)">
         <div class="repo-info">
             <h3 class="repo-name">

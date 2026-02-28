@@ -13,6 +13,7 @@ def make_github_mock(
     branches=None,
     comparison=None,
     codespaces=None,
+    commit_count=0,
 ):
     """Create a mock GitHubClient with preset responses."""
     gh = AsyncMock()
@@ -20,6 +21,7 @@ def make_github_mock(
     gh.list_branches.return_value = branches or []
     gh.compare_branches.return_value = comparison or {"ahead_by": 0, "behind_by": 0}
     gh.list_codespaces.return_value = codespaces or []
+    gh.get_commit_count.return_value = commit_count
     return gh
 
 
@@ -96,6 +98,45 @@ class TestCodespaceCounts:
         assert repo.codespace_count == 2
         assert len(repo.codespaces) == 2
         assert repo.codespaces[0].owner == "user1"
+
+
+class TestCommitCountAndPushedAt:
+    async def test_passes_commit_count_and_pushed_at(self):
+        gh = make_github_mock(
+            repos=[
+                {
+                    "name": "r",
+                    "full_name": "o/r",
+                    "default_branch": "main",
+                    "pushed_at": "2025-03-01T12:00:00Z",
+                }
+            ],
+            commit_count=42,
+        )
+        config = DashboardConfig(github_orgs=[OrgConfig(name="o", include_all=True)])
+
+        agg = Aggregator(config, gh)
+        data = await agg.build()
+
+        repo = data.repos[0].repo
+        assert repo.commit_count == 42
+        assert repo.pushed_at is not None
+        assert repo.pushed_at.year == 2025
+
+    async def test_commit_count_error_non_fatal(self):
+        gh = make_github_mock(
+            repos=[{"name": "r", "full_name": "o/r", "default_branch": "main"}],
+        )
+        gh.get_commit_count.side_effect = Exception("rate limited")
+
+        config = DashboardConfig(github_orgs=[OrgConfig(name="o")])
+
+        agg = Aggregator(config, gh)
+        data = await agg.build()
+
+        assert len(data.repos) == 1
+        assert data.repos[0].repo.commit_count == 0
+        assert any("Commit count" in e for e in data.errors)
 
 
 class TestIncludeAllBehavior:

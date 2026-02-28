@@ -150,10 +150,13 @@ class Aggregator:
         category = override.category if override else "Uncategorized"
         tags = override.tags if override else []
 
-        # Fetch branches and codespaces concurrently
+        # Fetch branches, codespaces, and commit count concurrently
         branch_task = self._fetch_branches(org, repo_name, default_branch, errors)
         codespace_task = self._fetch_codespaces(org, repo_name, errors)
-        branches, codespaces = await asyncio.gather(branch_task, codespace_task)
+        commit_count_task = self._fetch_commit_count(org, repo_name, errors)
+        branches, codespaces, commit_count = await asyncio.gather(
+            branch_task, codespace_task, commit_count_task
+        )
 
         repo = RepoData(
             org=org,
@@ -164,6 +167,8 @@ class Aggregator:
             default_branch=default_branch,
             language=repo_data.get("language"),
             updated_at=repo_data.get("updated_at"),
+            pushed_at=repo_data.get("pushed_at"),
+            commit_count=commit_count,
             category=category,
             tags=tags,
             branches=branches,
@@ -228,6 +233,16 @@ class Aggregator:
         except Exception as exc:
             errors.append(f"Codespaces for {org}/{repo}: {exc}")
             return []
+
+    async def _fetch_commit_count(
+        self, org: str, repo: str, errors: list[str]
+    ) -> int:
+        """Fetch total commit count from contributor stats."""
+        try:
+            return await self._github.get_commit_count(org, repo)
+        except Exception as exc:
+            errors.append(f"Commit count for {org}/{repo}: {exc}")
+            return 0
 
     def _get_fly_app_name(self, org_config: OrgConfig, repo_name: str) -> str | None:
         """Look up explicit Fly app mapping from config."""

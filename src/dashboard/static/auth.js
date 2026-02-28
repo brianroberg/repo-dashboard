@@ -95,10 +95,9 @@ async function fetchDashboard(key) {
  */
 function injectContent(html) {
     dashboardContent.innerHTML = html;  // trusted: from our own /api/dashboard/html endpoint
-    // Re-initialize filter switches now that the dashboard DOM exists.
-    if (typeof initFilters === 'function') {
-        initFilters();
-    }
+    // Re-initialize filter switches and sort controls now that the dashboard DOM exists.
+    if (typeof initFilters === 'function') initFilters();
+    if (typeof initSort === 'function') initSort();
 }
 
 /* ── Auth flow ───────────────────────────────────────────────────── */

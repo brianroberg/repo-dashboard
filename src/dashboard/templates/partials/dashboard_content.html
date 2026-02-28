@@ -16,6 +16,21 @@
             <span class="filter-switch-track" aria-hidden="true"></span>
             <span class="filter-switch-text">Hide all-clear</span>
         </label>
+
+        <span class="toolbar-separator" aria-hidden="true"></span>
+
+        <div class="sort-controls" role="group" aria-label="Sort repositories">
+            <span class="filter-toolbar-label">Sort</span>
+            <select id="sort-field" class="sort-select" aria-label="Sort by">
+                <option value="name">Name</option>
+                <option value="pushed-at">Last pushed</option>
+                <option value="commit-count">Commit count</option>
+            </select>
+            <button id="sort-dir" class="sort-dir-btn" type="button" aria-label="Sort ascending" data-dir="asc">
+                <span class="sort-dir-icon" aria-hidden="true">&#8593;</span>
+                <span class="sort-dir-text">Asc</span>
+            </button>
+        </div>
     </div>
 
     {% if data.errors %}

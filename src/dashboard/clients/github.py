@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import Any
 
@@ -87,3 +88,33 @@ class GitHubClient:
         """List codespaces for a repo."""
         resp = await self._get(f"{BASE_URL}/repos/{owner}/{repo}/codespaces")
         return resp.json().get("codespaces", [])
+
+    async def get_commit_count(self, owner: str, repo: str) -> int:
+        """Sum contributions across all contributors for total commit count.
+
+        The contributors stats endpoint may return 202 while GitHub computes
+        results.  We retry once after a short delay; on continued 202 or any
+        error, return 0 so the caller degrades gracefully.
+
+        Note: fetches only the first page (up to 100 contributors). Repos with
+        more contributors will have an understated count, but this is used only
+        as a sort signal so approximate ordering is acceptable.
+        """
+        url = f"{BASE_URL}/repos/{owner}/{repo}/contributors"
+        for attempt in range(2):
+            try:
+                resp = await self._http.get(
+                    url,
+                    headers=self._headers,
+                    params={"per_page": 100, "anon": "true"},
+                )
+                if resp.status_code == 202:
+                    if attempt == 0:
+                        await asyncio.sleep(1)
+                        continue
+                    return 0
+                resp.raise_for_status()
+                return sum(c.get("contributions", 0) for c in resp.json())
+            except Exception:
+                return 0
+        return 0

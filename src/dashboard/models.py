@@ -57,6 +57,8 @@ class RepoData(BaseModel):
     default_branch: str = "main"
     language: str | None = None
     updated_at: datetime | None = None
+    pushed_at: datetime | None = None
+    commit_count: int = 0
     category: str = "Uncategorized"
     tags: list[str] = Field(default_factory=list)
     branches: list[BranchInfo] = Field(default_factory=list)
