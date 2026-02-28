@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from dashboard.config import load_config
-from dashboard.routes import api, dashboard
+from dashboard.routes import api, content, dashboard
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 
@@ -44,5 +44,6 @@ def create_app(config_path: str | Path | None = None) -> FastAPI:
     # Routes
     app.include_router(dashboard.router)
     app.include_router(api.router)
+    app.include_router(content.router)
 
     return app

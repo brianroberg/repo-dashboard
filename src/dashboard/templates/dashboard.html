@@ -1,47 +1,38 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="dashboard">
-    <header class="dashboard-header">
-        <h1>Repo Dashboard</h1>
-        <p class="generated-at">Generated at {{ data.generated_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-    </header>
-
-    <div class="filter-toolbar">
-        <span class="filter-toolbar-label">Filter</span>
-        <label class="filter-switch">
-            <input type="checkbox" id="filter-divergence" class="filter-switch-input">
-            <span class="filter-switch-track" aria-hidden="true"></span>
-            <span class="filter-switch-text">Has divergence</span>
-        </label>
-        <label class="filter-switch">
-            <input type="checkbox" id="filter-all-clear" class="filter-switch-input">
-            <span class="filter-switch-track" aria-hidden="true"></span>
-            <span class="filter-switch-text">Hide all-clear</span>
-        </label>
+{# ── Login panel ── shown when no API key is stored ── #}
+<div id="login-panel" class="login-panel">
+    <div class="login-card">
+        <h1 class="login-title">Repo Dashboard</h1>
+        <p class="login-subtitle">Enter your API key to continue</p>
+        <form id="login-form" class="login-form" novalidate>
+            <div class="login-field">
+                <label for="api-key-input" class="login-label">API Key</label>
+                <input
+                    id="api-key-input"
+                    type="password"
+                    class="login-input"
+                    placeholder="Enter your API key"
+                    autocomplete="current-password"
+                    spellcheck="false"
+                    required
+                >
+            </div>
+            <div id="login-error" class="login-error" role="alert" hidden></div>
+            <button type="submit" id="login-submit" class="login-button">
+                Unlock Dashboard
+            </button>
+        </form>
     </div>
+</div>
 
-    {% if data.errors %}
-    <div class="errors">
-        <h2>Errors</h2>
-        <ul>
-            {% for error in data.errors %}
-            <li class="error-item">{{ error }}</li>
-            {% endfor %}
-        </ul>
+{# ── Dashboard panel ── shown after successful auth ── #}
+<div id="dashboard-panel" hidden>
+    <div id="dashboard-loading" class="dashboard-loading" hidden>
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <span>Loading dashboard&hellip;</span>
     </div>
-    {% endif %}
-
-    <div class="repo-grid" id="repo-grid">
-        {% for view in data.repos %}
-            {% include "partials/repo_card.html" %}
-        {% endfor %}
-    </div>
-
-    {% if not data.repos %}
-    <div class="empty-state">
-        <p>No repositories found. Check your configuration.</p>
-    </div>
-    {% endif %}
+    <div id="dashboard-content"></div>
 </div>
 {% endblock %}

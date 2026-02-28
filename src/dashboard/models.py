@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, computed_field
 
@@ -139,4 +140,6 @@ class DashboardData(BaseModel):
 
     repos: list[RepoView] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
-    generated_at: datetime = Field(default_factory=datetime.now)
+    generated_at: datetime = Field(
+        default_factory=lambda: datetime.now(ZoneInfo("America/New_York"))
+    )

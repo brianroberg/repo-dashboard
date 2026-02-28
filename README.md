@@ -14,7 +14,7 @@ A single-page dashboard that shows all your GitHub projects across multiple orgs
 - **Fly.io deployments** — view machine status, regions, and hostnames for mapped Fly apps
 - **Partial failure tolerance** — if one API call fails, the rest of the dashboard still renders
 - **Dual access** — server-rendered HTML dashboard and a JSON API endpoint
-- **API key auth** — shared secret via query param (`?api_key=`) or header (`X-API-Key`)
+- **API key auth** — login prompt on first visit; key stored in browser session
 - **YAML config** — declarative org/repo configuration with per-repo overrides
 - **Dark theme** — GitHub-inspired dark UI designed for information density
 - **Keyboard shortcuts** — press `e` to expand all cards, `c` to collapse all
@@ -81,11 +81,10 @@ FLY_API_TOKEN=fly_xxxxxxxxxx         # optional
 ### Run
 
 ```bash
-source .env
-uv run uvicorn dashboard.app:create_app --factory --reload
+uv run uvicorn dashboard.app:create_app --factory --reload --env-file .env
 ```
 
-Then open `http://localhost:8000/?api_key=your-secret-key`.
+Then open `http://localhost:8000/` and enter your API key when prompted.
 
 ## Environment Variables
 
@@ -125,19 +124,11 @@ Then open `http://localhost:8000/?api_key=your-secret-key`.
 
 ### `GET /`
 
-Returns a server-rendered HTML dashboard. Requires API key.
-
-```bash
-# Via query parameter
-curl http://localhost:8000/?api_key=your-key
-
-# Via header
-curl -H "X-API-Key: your-key" http://localhost:8000/
-```
+Serves the dashboard page. If no API key is stored in the browser session, a login form is shown. After entering a valid key, the dashboard content loads automatically.
 
 ### `GET /api/dashboard`
 
-Returns the full dashboard data as JSON. Same auth requirements.
+Returns the full dashboard data as JSON. Requires API key via header.
 
 ```bash
 curl -H "X-API-Key: your-key" http://localhost:8000/api/dashboard | python -m json.tool
@@ -187,13 +178,13 @@ Response shape:
 ## Architecture
 
 ```
-Request → Auth (API key) → Aggregator → ┬─ GitHubClient (repos, branches, codespaces)
-                                         └─ FlyClient    (apps, machines)
-                                              ↓
-                                         DashboardData
-                                              ↓
-                                   ┌─ GET /          → Jinja2 HTML
-                                   └─ GET /api/dash  → JSON
+GET /  (unauthenticated) → Page shell with login form
+                                ↓ (after login, JS fetches)
+GET /api/dashboard/html  → Auth → Aggregator → ┬─ GitHubClient
+                                                └─ FlyClient
+                                                     ↓
+                                                DashboardData → Jinja2 HTML fragment
+GET /api/dashboard       → Auth → Aggregator → JSON
 ```
 
 Key design decisions:
@@ -202,7 +193,7 @@ Key design decisions:
 - **Aggregator as sole orchestrator** — routes never call API clients directly; all data flows through the aggregator
 - **Concurrent enrichment** — branches and codespaces for each repo are fetched in parallel via `asyncio.gather`
 - **Partial failure** — `asyncio.gather(return_exceptions=True)` collects errors into a list; the dashboard renders whatever data is available
-- **Server-side rendering** — Jinja2 does all HTML rendering; JavaScript only handles expand/collapse
+- **Server-side rendering** — Jinja2 does all HTML rendering; JavaScript handles auth, content loading, and expand/collapse
 
 ## Project Structure
 
@@ -211,7 +202,7 @@ src/dashboard/
 ├── app.py              # FastAPI factory, lifespan, router registration
 ├── config.py           # YAML loading → DashboardConfig
 ├── models.py           # All Pydantic models (config, API, view)
-├── auth.py             # API key dependency (query param or header)
+├── auth.py             # API key dependency (header-based)
 ├── dependencies.py     # get_aggregator dependency
 ├── clients/
 │   ├── github.py       # GitHub REST API client
@@ -219,16 +210,19 @@ src/dashboard/
 ├── services/
 │   └── aggregator.py   # Orchestrates clients → DashboardData
 ├── routes/
-│   ├── dashboard.py    # GET / → HTML
+│   ├── dashboard.py    # GET / → page shell (unauthenticated)
+│   ├── content.py      # GET /api/dashboard/html → HTML fragment
 │   └── api.py          # GET /api/dashboard → JSON
 ├── templates/
 │   ├── base.html
-│   ├── dashboard.html
+│   ├── dashboard.html  # Page shell with login form + dashboard container
 │   └── partials/
+│       ├── dashboard_content.html  # Dashboard body (filter toolbar, repo grid)
 │       └── repo_card.html
 └── static/
     ├── style.css
-    └── dashboard.js
+    ├── dashboard.js    # Card toggle, filters, keyboard shortcuts
+    └── auth.js         # Login form, sessionStorage, content fetching
 ```
 
 ## Development
@@ -257,8 +251,7 @@ uv run ruff format src/ tests/
 ### Run the dev server
 
 ```bash
-source .env
-uv run uvicorn dashboard.app:create_app --factory --reload
+uv run uvicorn dashboard.app:create_app --factory --reload --env-file .env
 ```
 
 ## License
