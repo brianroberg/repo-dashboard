@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -15,6 +16,7 @@ from dashboard.config import load_config
 from dashboard.routes import api, content, dashboard
 
 PACKAGE_DIR = Path(__file__).resolve().parent
+_STARTUP_VERSION = hex(int(time.time()))[2:]  # changes each server restart
 
 
 @asynccontextmanager
@@ -34,8 +36,9 @@ def create_app(config_path: str | Path | None = None) -> FastAPI:
     app = FastAPI(title="Repo Dashboard", lifespan=lifespan)
     app.state.config = config
 
-    # Templates
+    # Templates — cache_v busts browser cache on server restart
     templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
+    templates.env.globals["cache_v"] = _STARTUP_VERSION
     app.state.templates = templates
 
     # Static files
