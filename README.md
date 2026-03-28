@@ -14,10 +14,10 @@ A single-page dashboard that shows all your GitHub projects across multiple orgs
 - **Fly.io deployments** — view machine status, regions, and hostnames for mapped Fly apps
 - **Partial failure tolerance** — if one API call fails, the rest of the dashboard still renders
 - **Dual access** — server-rendered HTML dashboard and a JSON API endpoint
-- **API key auth** — login prompt on first visit; key stored in browser session
 - **YAML config** — declarative org/repo configuration with per-repo overrides
 - **Dark theme** — GitHub-inspired dark UI designed for information density
 - **Keyboard shortcuts** — press `e` to expand all cards, `c` to collapse all
+- **Docker deployment** — ready-to-deploy with Docker Compose behind a reverse proxy
 
 ## Quick Start
 
@@ -73,7 +73,6 @@ cp .env.example .env
 Edit `.env` with your tokens:
 
 ```env
-DASHBOARD_API_KEY=your-secret-key    # required
 GITHUB_TOKEN=ghp_xxxxxxxxxxxxx       # required
 FLY_API_TOKEN=fly_xxxxxxxxxx         # optional
 ```
@@ -84,13 +83,29 @@ FLY_API_TOKEN=fly_xxxxxxxxxx         # optional
 uv run uvicorn dashboard.app:create_app --factory --reload --env-file .env
 ```
 
-Then open `http://localhost:8000/` and enter your API key when prompted.
+Then open `http://localhost:8000/`.
+
+> **Note:** This dashboard has no built-in authentication. When deploying, restrict access at the network or reverse proxy layer (e.g., Caddy with basic auth, Tailscale, VPN).
+
+## Docker Deployment
+
+Build and run with Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+Prerequisites:
+- A `.env` file with at least `GITHUB_TOKEN` set
+- A `config.yaml` in the project root (bind-mounted into the container)
+- The external Docker network `caddy_net` must exist: `docker network create caddy_net`
+
+The compose file expects a Caddy (or similar) reverse proxy on the `caddy_net` network to handle external access.
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |---|---|---|
-| `DASHBOARD_API_KEY` | Yes | Shared secret for accessing the dashboard |
 | `GITHUB_TOKEN` | Yes | GitHub PAT with `repo` + `codespace` scopes |
 | `FLY_API_TOKEN` | No | Fly.io API token; deployment info is skipped if not set |
 | `DASHBOARD_CONFIG_PATH` | No | Path to YAML config file (default: `config.yaml`) |
@@ -124,14 +139,14 @@ Then open `http://localhost:8000/` and enter your API key when prompted.
 
 ### `GET /`
 
-Serves the dashboard page. If no API key is stored in the browser session, a login form is shown. After entering a valid key, the dashboard content loads automatically.
+Serves the full dashboard page with live data, rendered server-side.
 
 ### `GET /api/dashboard`
 
-Returns the full dashboard data as JSON. Requires API key via header.
+Returns the full dashboard data as JSON.
 
 ```bash
-curl -H "X-API-Key: your-key" http://localhost:8000/api/dashboard | python -m json.tool
+curl http://localhost:8000/api/dashboard | python -m json.tool
 ```
 
 Response shape:
@@ -178,13 +193,11 @@ Response shape:
 ## Architecture
 
 ```
-GET /  (unauthenticated) → Page shell with login form
-                                ↓ (after login, JS fetches)
-GET /api/dashboard/html  → Auth → Aggregator → ┬─ GitHubClient
-                                                └─ FlyClient
-                                                     ↓
-                                                DashboardData → Jinja2 HTML fragment
-GET /api/dashboard       → Auth → Aggregator → JSON
+GET /              → Aggregator → ┬─ GitHubClient
+                                  └─ FlyClient
+                                       ↓
+                                  DashboardData → Jinja2 → full HTML page
+GET /api/dashboard → Aggregator → JSON
 ```
 
 Key design decisions:
@@ -193,7 +206,7 @@ Key design decisions:
 - **Aggregator as sole orchestrator** — routes never call API clients directly; all data flows through the aggregator
 - **Concurrent enrichment** — branches and codespaces for each repo are fetched in parallel via `asyncio.gather`
 - **Partial failure** — `asyncio.gather(return_exceptions=True)` collects errors into a list; the dashboard renders whatever data is available
-- **Server-side rendering** — Jinja2 does all HTML rendering; JavaScript handles auth, content loading, and expand/collapse
+- **Server-side rendering** — Jinja2 does all HTML rendering; JavaScript handles expand/collapse and client-side sorting/filtering
 
 ## Project Structure
 
@@ -202,7 +215,6 @@ src/dashboard/
 ├── app.py              # FastAPI factory, lifespan, router registration
 ├── config.py           # YAML loading → DashboardConfig
 ├── models.py           # All Pydantic models (config, API, view)
-├── auth.py             # API key dependency (header-based)
 ├── dependencies.py     # get_aggregator dependency
 ├── clients/
 │   ├── github.py       # GitHub REST API client
@@ -210,19 +222,17 @@ src/dashboard/
 ├── services/
 │   └── aggregator.py   # Orchestrates clients → DashboardData
 ├── routes/
-│   ├── dashboard.py    # GET / → page shell (unauthenticated)
-│   ├── content.py      # GET /api/dashboard/html → HTML fragment
+│   ├── dashboard.py    # GET / → full server-rendered dashboard
 │   └── api.py          # GET /api/dashboard → JSON
 ├── templates/
 │   ├── base.html
-│   ├── dashboard.html  # Page shell with login form + dashboard container
+│   ├── dashboard.html
 │   └── partials/
 │       ├── dashboard_content.html  # Dashboard body (filter toolbar, repo grid)
 │       └── repo_card.html
 └── static/
     ├── style.css
-    ├── dashboard.js    # Card toggle, filters, keyboard shortcuts
-    └── auth.js         # Login form, sessionStorage, content fetching
+    └── dashboard.js    # Card toggle, filters, sorting, keyboard shortcuts
 ```
 
 ## Development
@@ -239,7 +249,7 @@ uv sync --all-extras
 uv run pytest -v
 ```
 
-The test suite (61 tests) covers config loading, all Pydantic models, auth, both API clients, the aggregator service, and both route handlers. API client tests use `httpx.MockTransport` — no real HTTP calls are made.
+The test suite covers config loading, all Pydantic models, both API clients, the aggregator service, and both route handlers. API client tests use `httpx.MockTransport` — no real HTTP calls are made.
 
 ### Lint and format
 

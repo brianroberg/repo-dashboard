@@ -1,38 +1,5 @@
 {% extends "base.html" %}
 
 {% block content %}
-{# ── Login panel ── shown when no API key is stored ── #}
-<div id="login-panel" class="login-panel">
-    <div class="login-card">
-        <h1 class="login-title">Repo Dashboard</h1>
-        <p class="login-subtitle">Enter your API key to continue</p>
-        <form id="login-form" class="login-form" novalidate>
-            <div class="login-field">
-                <label for="api-key-input" class="login-label">API Key</label>
-                <input
-                    id="api-key-input"
-                    type="password"
-                    class="login-input"
-                    placeholder="Enter your API key"
-                    autocomplete="current-password"
-                    spellcheck="false"
-                    required
-                >
-            </div>
-            <div id="login-error" class="login-error" role="alert" hidden></div>
-            <button type="submit" id="login-submit" class="login-button">
-                Unlock Dashboard
-            </button>
-        </form>
-    </div>
-</div>
-
-{# ── Dashboard panel ── shown after successful auth ── #}
-<div id="dashboard-panel" hidden>
-    <div id="dashboard-loading" class="dashboard-loading" hidden>
-        <span class="loading-spinner" aria-hidden="true"></span>
-        <span>Loading dashboard&hellip;</span>
-    </div>
-    <div id="dashboard-content"></div>
-</div>
+{% include "partials/dashboard_content.html" %}
 {% endblock %}

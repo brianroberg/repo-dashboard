@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
+
+from dashboard.dependencies import get_aggregator
+from dashboard.services.aggregator import Aggregator
 
 router = APIRouter(tags=["dashboard"])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def dashboard_page(request: Request) -> HTMLResponse:
-    """Serve the dashboard shell page.
-
-    No authentication required — the page always loads.
-    The client-side auth layer (auth.js) handles API key
-    collection and fetches dashboard content after validation.
-    """
+async def dashboard_page(
+    request: Request,
+    aggregator: Aggregator = Depends(get_aggregator),
+) -> HTMLResponse:
+    """Serve the full dashboard page with live data."""
+    data = await aggregator.build()
     templates = request.app.state.templates
-    return templates.TemplateResponse(request, "dashboard.html", {})
+    return templates.TemplateResponse(request, "dashboard.html", {"data": data})

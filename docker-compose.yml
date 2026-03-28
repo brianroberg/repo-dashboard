@@ -1,0 +1,14 @@
+services:
+  dashboard:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    networks:
+      - caddy_net
+
+# Requires: docker network create caddy_net
+networks:
+  caddy_net:
+    external: true
